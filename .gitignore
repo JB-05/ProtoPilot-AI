@@ -1,0 +1,23 @@
+# Environment (secrets)
+.env
+.env.*
+!.env.example
+
+# Backend
+backend/__pycache__/
+backend/.venv/
+backend/venv/
+backend/.env
+*.pyc
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.env
+frontend/.env*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
