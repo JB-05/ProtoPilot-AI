@@ -52,8 +52,13 @@ export interface PipelineState {
   architecture_model?: string | null;
   business_model?: string | null;
   risk_model?: string | null;
+  finance_model?: string | null;
   sprint_model?: string | null;
   sprints?: Sprint[];
+  /** Structured folder/file tree for MVP (array of FileNode). */
+  mvp_structure?: unknown[] | null;
+  /** Fallback: preformatted tree text. */
+  mvp_structure_text?: string | null;
   pipeline_run_id?: string | null;
   pipeline_status?: string | null;
 }
@@ -238,6 +243,7 @@ export const EMPTY_PROJECT_STATE: PipelineState = {
   architecture_model: null,
   business_model: null,
   risk_model: null,
+  finance_model: null,
   sprint_model: null,
   sprints: [],
 };

@@ -18,6 +18,7 @@ import {
   saveProjectState,
 } from "@/lib/apiClient";
 import ArchitectureView from "./ArchitectureView";
+import MVPGeneration, { type FileNode } from "./MVPGeneration";
 import RiskPanel from "./RiskPanel";
 import SprintBoard from "./SprintBoard";
 
@@ -516,11 +517,51 @@ export default function Dashboard() {
           </h2>
           <SprintBoard sprints={sprints} />
         </section>
-        <section className="panel panel--full" aria-labelledby="risk-heading">
-          <h2 id="risk-heading" className="panel__title">
-            Risk
+        <section className="panel-triple" aria-labelledby="risk-business-finance-heading">
+          <h2 id="risk-business-finance-heading" className="panel-triple__title">
+            Risk · Business · Finance
           </h2>
-          <RiskPanel content={workspaceState?.risk_model ?? null} />
+          <div className="panel-triple__grid">
+            <div className="panel panel-triple__item" aria-labelledby="risk-heading">
+              <h3 id="risk-heading" className="panel__title">
+                Risk
+              </h3>
+              <RiskPanel
+                content={workspaceState?.risk_model ?? null}
+                emptyMessage="Run the pipeline to generate risk items and mitigations."
+              />
+            </div>
+            <div className="panel panel-triple__item" aria-labelledby="business-heading">
+              <h3 id="business-heading" className="panel__title">
+                Business
+              </h3>
+              <RiskPanel
+                content={workspaceState?.business_model ?? null}
+                emptyMessage="Run the pipeline to generate business model."
+              />
+            </div>
+            <div className="panel panel-triple__item" aria-labelledby="finance-heading">
+              <h3 id="finance-heading" className="panel__title">
+                Finance
+              </h3>
+              <RiskPanel
+                content={workspaceState?.finance_model ?? null}
+                emptyMessage="Run the pipeline to generate financial analysis."
+              />
+            </div>
+          </div>
+        </section>
+        <section className="panel panel--full mvp-section" aria-labelledby="mvp-heading">
+          <h2 id="mvp-heading" className="panel__title">
+            MVP Generation
+          </h2>
+          <p className="panel__hint">
+            Build output and folder/file structure (Lovable-style)
+          </p>
+          <MVPGeneration
+            structure={(workspaceState?.mvp_structure ?? null) as FileNode[] | null}
+            structureText={workspaceState?.mvp_structure_text ?? null}
+          />
         </section>
         </main>
       </div>

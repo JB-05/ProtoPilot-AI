@@ -1,13 +1,14 @@
 type Props = {
   content?: string | null;
+  emptyMessage?: string;
 };
 
-export default function RiskPanel({ content }: Props) {
+export default function RiskPanel({ content, emptyMessage = "Run the pipeline to generate content." }: Props) {
   if (!content || content.trim() === "") {
     return (
       <div>
         <p style={{ margin: 0, color: "#666", fontSize: "0.9rem" }}>
-          Run the pipeline to generate risk items and mitigations.
+          {emptyMessage}
         </p>
       </div>
     );
