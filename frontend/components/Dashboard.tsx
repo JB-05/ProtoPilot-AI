@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   type ApiError,
   type PipelineRunSummary,
@@ -18,6 +19,7 @@ import {
   runPipeline,
   saveProjectState,
 } from "@/lib/apiClient";
+import { createClient } from "@/lib/supabase/client";
 import CTOStrategyView, { parseCTOStrategy } from "./CTOStrategyView";
 import ExecutionSection from "./ExecutionSection";
 import MVPGeneratedView from "./MVPGeneratedView";
@@ -50,6 +52,8 @@ function formatDate(s: string | null | undefined): string {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
+  const [userName, setUserName] = useState<string | null>(null);
   const [healthStatus, setHealthStatus] = useState<"ok" | "error" | null>(null);
   const [workspacePhase, setWorkspacePhase] = useState<WorkspacePhase>("no_project");
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -65,6 +69,14 @@ export default function Dashboard() {
   const [mvpGenerateError, setMvpGenerateError] = useState<string | null>(null);
   const [mvpGeneratedFiles, setMvpGeneratedFiles] = useState<{ path: string; content: string }[]>([]);
   const latestWorkspaceStateRef = useRef<PipelineState | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const name = (user?.user_metadata?.full_name as string) || user?.email || null;
+      setUserName(name ?? null);
+    });
+  }, []);
 
   const persistProjectId = useCallback((id: string | null) => {
     setProjectId(id);
@@ -299,11 +311,23 @@ export default function Dashboard() {
 
   const sprints: Sprint[] = workspaceState?.sprints ?? [];
 
+  const handleSignOut = useCallback(async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }, [router]);
+
   return (
     <div className="dashboard">
       <header className="dashboard__header">
         <h1 className="dashboard__title">ProtoPilot AI</h1>
         <div className="dashboard__header-actions">
+          {userName != null && userName !== "" && (
+            <span className="dashboard__user-name" aria-label="Signed in as">
+              Hi, {userName}
+            </span>
+          )}
           {projectId && (
             <button
               type="button"
@@ -326,6 +350,14 @@ export default function Dashboard() {
             disabled={isDisabled}
           >
             New Project
+          </button>
+          <button
+            type="button"
+            className="workspace__new-btn"
+            onClick={handleSignOut}
+            aria-label="Sign out"
+          >
+            Sign out
           </button>
           <span
             className={`health ${healthStatus === "ok" ? "health--ok" : healthStatus === "error" ? "health--error" : ""}`}

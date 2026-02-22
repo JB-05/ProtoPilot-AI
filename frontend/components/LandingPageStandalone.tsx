@@ -307,7 +307,7 @@ export default function LandingPage() {
                                 transition={{ duration: 0.8, delay: 0.4 }}
                                 className="flex flex-col sm:flex-row gap-3 sm:gap-6 mb-16 sm:mb-20 lg:mb-24 w-full sm:w-auto"
                             >
-                                <Button size="lg" className="rounded-none bg-white text-black hover:bg-zinc-200 px-8 sm:px-16 h-16 sm:h-20 text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] transition-all duration-500" onClick={() => router.push("#features")}>
+                                <Button size="lg" className="rounded-none bg-white text-black hover:bg-zinc-200 px-8 sm:px-16 h-16 sm:h-20 text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] transition-all duration-500" onClick={() => router.push("/dashboard")}>
                                     Initialize Workspace <ChevronRight className="ml-2 h-4 w-4" />
                                 </Button>
                                 <Button variant="outline" size="lg" className="rounded-none border-white/10 text-white hover:bg-white hover:text-black px-8 sm:px-16 h-16 sm:h-20 text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] transition-all" onClick={() => router.push("/coming-soon")}>
@@ -426,6 +426,7 @@ export default function LandingPage() {
                                     <Button
                                         size="lg"
                                         className="w-full sm:w-auto !bg-black !text-white hover:!bg-zinc-800 rounded-none px-8 sm:px-16 h-14 sm:h-20 text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] transition-all"
+                                        onClick={() => router.push("/dashboard")}
                                     >
                                         Start Validating
                                     </Button>

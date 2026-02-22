@@ -88,6 +88,12 @@ body {
   font-weight: 600;
 }
 
+.dashboard__user-name {
+  font-size: 0.875rem;
+  color: #aaa;
+  margin-right: 0.25rem;
+}
+
 .dashboard__body {
   flex: 1;
   display: flex;
