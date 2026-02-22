@@ -20,16 +20,18 @@ async def generate(
     system_prompt: Optional[str] = None,
     model: Optional[str] = None,
     max_tokens: int = DEFAULT_MAX_TOKENS,
+    api_key: Optional[str] = None,
 ) -> str:
     """
     Call OpenRouter chat completions. Returns the assistant message content only.
-    Requires OPENROUTER_API_KEY in env. Uses OPENROUTER_MODEL or default.
+    api_key: optional; if not set, uses OPENROUTER_API_KEY from env.
+    model: optional; if not set, uses OPENROUTER_MODEL from env or default.
     """
-    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    api_key = (api_key or os.environ.get("OPENROUTER_API_KEY", "")).strip()
     if not api_key:
-        raise RuntimeError("OPENROUTER_API_KEY is not set")
+        raise RuntimeError("OpenRouter API key not set (OPENROUTER_API_KEY or pass api_key)")
 
-    model = model or os.environ.get("OPENROUTER_MODEL", "").strip() or DEFAULT_MODEL
+    model = (model or os.environ.get("OPENROUTER_MODEL", "")).strip() or DEFAULT_MODEL
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})

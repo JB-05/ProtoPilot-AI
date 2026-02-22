@@ -229,6 +229,68 @@ export async function getSprints(ideaId: string): Promise<{ ok: true; sprints: S
   return { ok: true, sprints: body.sprints ?? [] };
 }
 
+export interface MVPGeneratePayload {
+  enhanced_problem: string;
+  target_user: string;
+  core_features: string;
+}
+
+export type MVPGenerateResult =
+  | { ok: true; files: { path: string; content: string }[]; output_dir: string }
+  | { ok: false; error: ApiError };
+
+export async function generateMvp(payload: MVPGeneratePayload): Promise<MVPGenerateResult> {
+  const res = await fetch(`${API_BASE}/api/mvp/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok) {
+    const body = (await res.json()) as { ok: boolean; files: { path: string; content: string }[]; output_dir: string };
+    return { ok: true, files: body.files ?? [], output_dir: body.output_dir ?? "" };
+  }
+  let message = `Request failed (${res.status})`;
+  try {
+    const data = (await res.json()) as { detail?: string };
+    if (typeof data?.detail === "string") message = data.detail;
+  } catch {
+    /* ignore */
+  }
+  return { ok: false, error: { message, agent_name: null } };
+}
+
+export interface MVPImprovePayload {
+  files: { path: string; content: string }[];
+  instruction: string;
+}
+
+export type MVPImproveResult =
+  | { ok: true; modified_files: { path: string; content: string }[] }
+  | { ok: false; error: ApiError };
+
+export async function improveMvp(payload: MVPImprovePayload): Promise<MVPImproveResult> {
+  const res = await fetch(`${API_BASE}/api/mvp/improve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (res.ok) {
+    const body = (await res.json()) as {
+      ok: boolean;
+      modified_files: { path: string; content: string }[];
+    };
+    return { ok: true, modified_files: body.modified_files ?? [] };
+  }
+  let message = `Request failed (${res.status})`;
+  try {
+    const data = (await res.json()) as { detail?: string };
+    if (typeof data?.detail === "string") message = data.detail;
+  } catch {
+    /* ignore */
+  }
+  return { ok: false, error: { message, agent_name: null } };
+}
+
 /** Empty state for new projects with no revisions. */
 export const EMPTY_PROJECT_STATE: PipelineState = {
   idea_id: null,

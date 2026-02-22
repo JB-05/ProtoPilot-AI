@@ -21,3 +21,9 @@ frontend/.env*.local
 .vscode/
 *.swp
 *.swo
+
+# OS
+.DS_Store
+
+# Generated MVP output (regenerated on each run)
+generated-mvp/

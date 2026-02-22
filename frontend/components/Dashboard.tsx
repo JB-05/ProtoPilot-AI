@@ -9,6 +9,7 @@ import {
   type Sprint,
   EMPTY_PROJECT_STATE,
   createProject,
+  generateMvp,
   getHealth,
   getProjectRuns,
   getProjectRunState,
@@ -17,14 +18,16 @@ import {
   runPipeline,
   saveProjectState,
 } from "@/lib/apiClient";
-import CTOStrategyView from "./CTOStrategyView";
+import CTOStrategyView, { parseCTOStrategy } from "./CTOStrategyView";
 import ExecutionSection from "./ExecutionSection";
+import MVPGeneratedView from "./MVPGeneratedView";
 import MVPGeneration, { type FileNode } from "./MVPGeneration";
 
 const PROJECT_ID_KEY = "protopilot_project_id";
 
 type WorkspacePhase = "no_project" | "active" | "loading" | "saving" | "error";
 type PipelinePhase = "idle" | "loading" | "success" | "error";
+type MVPGeneratePhase = "idle" | "loading" | "success" | "error";
 
 function safeString(value: unknown): string {
   if (value == null) return "—";
@@ -58,6 +61,9 @@ export default function Dashboard() {
   const [runList, setRunList] = useState<PipelineRunSummary[]>([]);
   const [viewingRunId, setViewingRunId] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [mvpGeneratePhase, setMvpGeneratePhase] = useState<MVPGeneratePhase>("idle");
+  const [mvpGenerateError, setMvpGenerateError] = useState<string | null>(null);
+  const [mvpGeneratedFiles, setMvpGeneratedFiles] = useState<{ path: string; content: string }[]>([]);
   const latestWorkspaceStateRef = useRef<PipelineState | null>(null);
 
   const persistProjectId = useCallback((id: string | null) => {
@@ -220,6 +226,36 @@ export default function Dashboard() {
       setPipelinePhase("error");
     }
   }, [projectId, workspaceState, loadRunHistory, loadProjectHistory]);
+
+  const handleGenerateMvp = useCallback(async () => {
+    const state = latestWorkspaceStateRef.current ?? workspaceState;
+    if (!state) return;
+    let enhanced_problem = state.problem_statement ?? state.idea ?? "";
+    let target_user = state.target_audience ?? "";
+    let core_features = state.key_features ?? "";
+    const cto = parseCTOStrategy(state.enhanced_idea ?? null);
+    if (cto?.enhanced_idea) {
+      enhanced_problem = cto.enhanced_idea.problem || enhanced_problem;
+      target_user = cto.enhanced_idea.target_user || target_user;
+      core_features = Array.isArray(cto.enhanced_idea.core_features)
+        ? cto.enhanced_idea.core_features.join(", ")
+        : core_features;
+    }
+    setMvpGeneratePhase("loading");
+    setMvpGenerateError(null);
+    const result = await generateMvp({
+      enhanced_problem,
+      target_user,
+      core_features,
+    });
+    if (result.ok) {
+      setMvpGeneratePhase("success");
+      setMvpGeneratedFiles(result.files);
+    } else {
+      setMvpGenerateError(result.error.message);
+      setMvpGeneratePhase("error");
+    }
+  }, [workspaceState]);
 
   useEffect(() => {
     getHealth()
@@ -510,8 +546,51 @@ export default function Dashboard() {
                   MVP Generation
                 </h2>
                 <p className="panel__hint">
-                  Build output and folder/file structure (Lovable-style)
+                  Build output and folder/file structure 
                 </p>
+                <div className="mvp-generate__actions">
+                  <button
+                    type="button"
+                    className="pipeline-run__button"
+                    onClick={handleGenerateMvp}
+                    disabled={isDisabled || mvpGeneratePhase === "loading"}
+                    aria-busy={mvpGeneratePhase === "loading"}
+                  >
+                    {mvpGeneratePhase === "loading" ? "Generating…" : "Generate MVP"}
+                  </button>
+                  {mvpGeneratePhase === "error" && mvpGenerateError && (
+                    <p className="mvp-generate__error" role="alert">{mvpGenerateError}</p>
+                  )}
+                </div>
+                {mvpGeneratePhase === "success" && (
+                  <div className="pipeline-result__card mvp-generate__success-card" role="status">
+                    <div className="mvp-generate__success">
+                      <p><strong>Generated.</strong> Files are in <code>generated-mvp/</code>. The app is starting automatically.</p>
+                      <p className="mvp-generate__open-hint">
+                        Wait 10–15 seconds, then click the button below to open your app at <code>http://localhost:5173</code>. If the link does not work, run manually in two terminals:
+                      </p>
+                      <p className="mvp-generate__steps">
+                        <code>cd generated-mvp/backend && python3 -m uvicorn main:app --reload --port 8001</code>
+                      </p>
+                      <p className="mvp-generate__steps">
+                        <code>cd generated-mvp/frontend && npm install && npm run dev</code>
+                      </p>
+                    </div>
+                    <a
+                      href="http://localhost:5173"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="workspace__new-btn workspace__new-btn--primary mvp-generate__open-btn"
+                    >
+                      Open Generated Frontend
+                    </a>
+                  </div>
+                )}
+                {mvpGeneratePhase === "success" && mvpGeneratedFiles.length > 0 && (
+                  <div className="pipeline-result__card mvp-generated-card">
+                    <MVPGeneratedView files={mvpGeneratedFiles} showPreview={false} />
+                  </div>
+                )}
                 <div className="pipeline-result__card">
                   <MVPGeneration
                     structure={(workspaceState?.mvp_structure ?? null) as FileNode[] | null}

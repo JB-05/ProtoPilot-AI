@@ -142,13 +142,15 @@ class Strategist:
     async def process(self, state: IdeaState) -> str:
         """Call LLM (OpenRouter) or mock; parse, guard, validate; return JSON string. Pipeline unchanged."""
         import os
-        if not os.environ.get("OPENROUTER_API_KEY", "").strip():
+        cto_key = (os.environ.get("OPENROUTER_CTO_KEY") or os.environ.get("OPENROUTER_API_KEY") or "").strip()
+        if not cto_key:
             out = _mock_response(state)
             return json.dumps(out)
 
         user_prompt = _build_user_prompt(state)
         from core.llm_client import generate
-        raw = await generate(user_prompt, system_prompt=SYSTEM_PROMPT)
+        cto_model = (os.environ.get("OPENROUTER_CTO_MODEL") or os.environ.get("OPENROUTER_MODEL") or "").strip() or "openai/gpt-oss-120b"
+        raw = await generate(user_prompt, system_prompt=SYSTEM_PROMPT, api_key=cto_key, model=cto_model)
 
         parsed = safe_parse_json(raw)
         if not parsed:
