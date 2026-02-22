@@ -2,6 +2,7 @@
 Structured errors for the validation and reliability layer.
 Malformed or invalid agent outputs must not break the pipeline.
 """
+from __future__ import annotations
 
 from typing import Any
 

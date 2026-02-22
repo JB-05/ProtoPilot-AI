@@ -4,7 +4,7 @@ Pydantic models for request/response and pipeline data.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -23,8 +23,8 @@ class ErrorDetail(BaseModel):
 
     code: str = Field(..., description="Error code (e.g. validation_error, pipeline_error)")
     message: str = Field(..., description="Human-readable message")
-    agent_name: str | None = Field(None, description="Agent that failed, if applicable")
-    details: dict[str, Any] = Field(default_factory=dict, description="Extra context (e.g. parse errors)")
+    agent_name: Optional[str] = Field(None, description="Agent that failed, if applicable")
+    details: dict = Field(default_factory=dict, description="Extra context (e.g. parse errors)")
 
 
 class StructuredErrorResponse(BaseModel):
@@ -43,14 +43,86 @@ class AgentOutputBase(BaseModel):
     """Base for all agent outputs. Ensures a minimal valid structure."""
 
     content: str = Field(..., min_length=1, description="Primary output content")
-    reasoning: str | None = Field(None, description="Optional reasoning or notes")
+    reasoning: Optional[str] = Field(None, description="Optional reasoning or notes")
 
     class Config:
         extra = "forbid"  # Reject unknown keys from LLM output
 
 
-class StrategistOutput(AgentOutputBase):
-    """Schema enforced for Strategist agent output."""
+# --- CTO / Business Strategy output (Strategist) ---
+
+
+class EnhancedIdeaBlock(BaseModel):
+    """Refined idea block from CTO Strategy agent."""
+
+    problem: str = ""
+    target_user: str = ""
+    core_features: List[str] = []
+
+    class Config:
+        extra = "allow"
+
+
+class MarketAnalysisBlock(BaseModel):
+    """Market analysis from CTO Strategy agent."""
+
+    competitors: List[str] = []
+    market_gap: str = ""
+
+    class Config:
+        extra = "allow"
+
+
+class BusinessModelBlock(BaseModel):
+    """Business model from CTO Strategy agent."""
+
+    revenue_streams: List[str] = []
+    pricing_strategy: str = ""
+    cost_structure: List[str] = []
+
+    class Config:
+        extra = "allow"
+
+
+class RiskAnalysisBlock(BaseModel):
+    """Risk analysis from CTO Strategy agent."""
+
+    technical_risk: str = ""
+    market_risk: str = ""
+    regulatory_risk: str = ""
+
+    class Config:
+        extra = "allow"
+
+
+class ArchitectureBlock(BaseModel):
+    """Architecture recommendation from CTO Strategy agent."""
+
+    frontend: str = "Next.js"
+    backend: str = "FastAPI"
+    database: str = "SQLite"
+    justification: str = ""
+
+    class Config:
+        extra = "allow"
+
+
+class CTOStrategyOutput(BaseModel):
+    """Full CTO/Business Strategy agent output. Validated then merged into state."""
+
+    enhanced_idea: EnhancedIdeaBlock
+    market_analysis: MarketAnalysisBlock
+    business_model: BusinessModelBlock
+    risk_analysis: RiskAnalysisBlock
+    architecture: ArchitectureBlock
+    feasibility_score: int = Field(..., ge=0, le=100)
+
+    class Config:
+        extra = "allow"
+
+
+class StrategistOutput(CTOStrategyOutput):
+    """Strategist uses CTO/Business Strategy format. Alias for pipeline validation."""
 
     pass
 
@@ -77,9 +149,9 @@ class SprintTask(BaseModel):
     """Single task in a sprint."""
 
     title: str
-    description: str | None = None
-    task_type: str | None = None
-    estimated_effort: str | None = None
+    description: Optional[str] = None
+    task_type: Optional[str] = None
+    estimated_effort: Optional[str] = None
     status: str = "todo"
 
     class Config:
@@ -90,8 +162,8 @@ class SprintItem(BaseModel):
     """Sprint with tasks."""
 
     sprint_index: int
-    name: str | None = None
-    tasks: list[SprintTask] = []
+    name: Optional[str] = None
+    tasks: List[SprintTask] = []
 
     class Config:
         extra = "allow"
@@ -100,7 +172,7 @@ class SprintItem(BaseModel):
 class ScrumOutput(AgentOutputBase):
     """Schema enforced for Scrum agent output. Optional sprints for DB persistence."""
 
-    sprints: list[SprintItem] | None = None
+    sprints: Optional[List[SprintItem]] = None
 
     class Config:
         extra = "allow"

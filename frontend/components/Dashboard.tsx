@@ -9,6 +9,7 @@ import {
   type Sprint,
   EMPTY_PROJECT_STATE,
   createProject,
+  generateMvp,
   getHealth,
   getProjectRuns,
   getProjectRunState,
@@ -17,15 +18,16 @@ import {
   runPipeline,
   saveProjectState,
 } from "@/lib/apiClient";
-import ArchitectureView from "./ArchitectureView";
+import CTOStrategyView, { parseCTOStrategy } from "./CTOStrategyView";
+import ExecutionSection from "./ExecutionSection";
+import MVPGeneratedView from "./MVPGeneratedView";
 import MVPGeneration, { type FileNode } from "./MVPGeneration";
-import RiskPanel from "./RiskPanel";
-import SprintBoard from "./SprintBoard";
 
 const PROJECT_ID_KEY = "protopilot_project_id";
 
 type WorkspacePhase = "no_project" | "active" | "loading" | "saving" | "error";
 type PipelinePhase = "idle" | "loading" | "success" | "error";
+type MVPGeneratePhase = "idle" | "loading" | "success" | "error";
 
 function safeString(value: unknown): string {
   if (value == null) return "—";
@@ -59,6 +61,9 @@ export default function Dashboard() {
   const [runList, setRunList] = useState<PipelineRunSummary[]>([]);
   const [viewingRunId, setViewingRunId] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [mvpGeneratePhase, setMvpGeneratePhase] = useState<MVPGeneratePhase>("idle");
+  const [mvpGenerateError, setMvpGenerateError] = useState<string | null>(null);
+  const [mvpGeneratedFiles, setMvpGeneratedFiles] = useState<{ path: string; content: string }[]>([]);
   const latestWorkspaceStateRef = useRef<PipelineState | null>(null);
 
   const persistProjectId = useCallback((id: string | null) => {
@@ -221,6 +226,36 @@ export default function Dashboard() {
       setPipelinePhase("error");
     }
   }, [projectId, workspaceState, loadRunHistory, loadProjectHistory]);
+
+  const handleGenerateMvp = useCallback(async () => {
+    const state = latestWorkspaceStateRef.current ?? workspaceState;
+    if (!state) return;
+    let enhanced_problem = state.problem_statement ?? state.idea ?? "";
+    let target_user = state.target_audience ?? "";
+    let core_features = state.key_features ?? "";
+    const cto = parseCTOStrategy(state.enhanced_idea ?? null);
+    if (cto?.enhanced_idea) {
+      enhanced_problem = cto.enhanced_idea.problem || enhanced_problem;
+      target_user = cto.enhanced_idea.target_user || target_user;
+      core_features = Array.isArray(cto.enhanced_idea.core_features)
+        ? cto.enhanced_idea.core_features.join(", ")
+        : core_features;
+    }
+    setMvpGeneratePhase("loading");
+    setMvpGenerateError(null);
+    const result = await generateMvp({
+      enhanced_problem,
+      target_user,
+      core_features,
+    });
+    if (result.ok) {
+      setMvpGeneratePhase("success");
+      setMvpGeneratedFiles(result.files);
+    } else {
+      setMvpGenerateError(result.error.message);
+      setMvpGeneratePhase("error");
+    }
+  }, [workspaceState]);
 
   useEffect(() => {
     getHealth()
@@ -485,84 +520,88 @@ export default function Dashboard() {
               </div>
             </section>
 
-            <section className="panel panel--full enhanced-idea">
-              <h2 className="panel__title">Enhanced idea</h2>
-              <p className="enhanced-idea__hint">
-                When you run the pipeline, your vague idea is refined into a clearer problem statement.
-              </p>
-              <div className="enhanced-idea__content">
-                {workspaceState.enhanced_idea ? (
-                  <pre className="enhanced-idea__text">
-                    {workspaceState.enhanced_idea}
-                  </pre>
-                ) : (
-                  <p className="enhanced-idea__empty">
-                    Run the pipeline to generate an enhanced idea from your input above.
-                  </p>
+            <div className="pipeline-result">
+              <section className="pipeline-result__section" aria-labelledby="strategy-heading">
+                <h2 id="strategy-heading" className="pipeline-result__heading">
+                  Strategy & Feasibility
+                </h2>
+                <p className="enhanced-idea__hint">
+                  Refined problem, market, business model, risks, architecture and feasibility score.
+                </p>
+                <div className="pipeline-result__card">
+                  <CTOStrategyView
+                    enhancedIdea={workspaceState.enhanced_idea ?? null}
+                    emptyMessage="Run the pipeline to generate strategy and feasibility analysis."
+                  />
+                </div>
+              </section>
+
+              <ExecutionSection
+                architectureContent={workspaceState?.architecture_model ?? null}
+                sprints={sprints}
+              />
+
+              <section className="pipeline-result__section mvp-section" aria-labelledby="mvp-heading">
+                <h2 id="mvp-heading" className="pipeline-result__heading">
+                  MVP Generation
+                </h2>
+                <p className="panel__hint">
+                  Build output and folder/file structure 
+                </p>
+                <div className="mvp-generate__actions">
+                  <button
+                    type="button"
+                    className="pipeline-run__button"
+                    onClick={handleGenerateMvp}
+                    disabled={isDisabled || mvpGeneratePhase === "loading"}
+                    aria-busy={mvpGeneratePhase === "loading"}
+                  >
+                    {mvpGeneratePhase === "loading" ? "Generating…" : "Generate MVP"}
+                  </button>
+                  {mvpGeneratePhase === "error" && mvpGenerateError && (
+                    <p className="mvp-generate__error" role="alert">{mvpGenerateError}</p>
+                  )}
+                </div>
+                {mvpGeneratePhase === "success" && (
+                  <div className="pipeline-result__card mvp-generate__success-card" role="status">
+                    <div className="mvp-generate__success">
+                      <p><strong>Generated.</strong> Files are in <code>generated-mvp/</code>. The app is starting automatically.</p>
+                      <p className="mvp-generate__open-hint">
+                        Wait 10–15 seconds, then click the button below to open your app at <code>http://localhost:5173</code>. If the link does not work, run manually in two terminals:
+                      </p>
+                      <p className="mvp-generate__steps">
+                        <code>cd generated-mvp/backend && python3 -m uvicorn main:app --reload --port 8001</code>
+                      </p>
+                      <p className="mvp-generate__steps">
+                        <code>cd generated-mvp/frontend && npm install && npm run dev</code>
+                      </p>
+                    </div>
+                    <a
+                      href="http://localhost:5173"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="workspace__new-btn workspace__new-btn--primary mvp-generate__open-btn"
+                    >
+                      Open Generated Frontend
+                    </a>
+                  </div>
                 )}
-              </div>
-            </section>
+                {mvpGeneratePhase === "success" && mvpGeneratedFiles.length > 0 && (
+                  <div className="pipeline-result__card mvp-generated-card">
+                    <MVPGeneratedView files={mvpGeneratedFiles} showPreview={false} />
+                  </div>
+                )}
+                <div className="pipeline-result__card">
+                  <MVPGeneration
+                    structure={(workspaceState?.mvp_structure ?? null) as FileNode[] | null}
+                    structureText={workspaceState?.mvp_structure_text ?? null}
+                  />
+                </div>
+              </section>
+            </div>
           </>
         )}
 
-        <section className="panel" aria-labelledby="architecture-heading">
-          <h2 id="architecture-heading" className="panel__title">
-            Architecture
-          </h2>
-          <ArchitectureView content={workspaceState?.architecture_model ?? null} />
-        </section>
-        <section className="panel" aria-labelledby="sprint-heading">
-          <h2 id="sprint-heading" className="panel__title">
-            Sprint Board
-          </h2>
-          <SprintBoard sprints={sprints} />
-        </section>
-        <section className="panel-triple" aria-labelledby="risk-business-finance-heading">
-          <h2 id="risk-business-finance-heading" className="panel-triple__title">
-            Risk · Business · Finance
-          </h2>
-          <div className="panel-triple__grid">
-            <div className="panel panel-triple__item" aria-labelledby="risk-heading">
-              <h3 id="risk-heading" className="panel__title">
-                Risk
-              </h3>
-              <RiskPanel
-                content={workspaceState?.risk_model ?? null}
-                emptyMessage="Run the pipeline to generate risk items and mitigations."
-              />
-            </div>
-            <div className="panel panel-triple__item" aria-labelledby="business-heading">
-              <h3 id="business-heading" className="panel__title">
-                Business
-              </h3>
-              <RiskPanel
-                content={workspaceState?.business_model ?? null}
-                emptyMessage="Run the pipeline to generate business model."
-              />
-            </div>
-            <div className="panel panel-triple__item" aria-labelledby="finance-heading">
-              <h3 id="finance-heading" className="panel__title">
-                Finance
-              </h3>
-              <RiskPanel
-                content={workspaceState?.finance_model ?? null}
-                emptyMessage="Run the pipeline to generate financial analysis."
-              />
-            </div>
-          </div>
-        </section>
-        <section className="panel panel--full mvp-section" aria-labelledby="mvp-heading">
-          <h2 id="mvp-heading" className="panel__title">
-            MVP Generation
-          </h2>
-          <p className="panel__hint">
-            Build output and folder/file structure (Lovable-style)
-          </p>
-          <MVPGeneration
-            structure={(workspaceState?.mvp_structure ?? null) as FileNode[] | null}
-            structureText={workspaceState?.mvp_structure_text ?? null}
-          />
-        </section>
         </main>
       </div>
       </div>

@@ -2,6 +2,7 @@
 Idea, pipeline run, agent outputs, sprints, and tasks persistence via Supabase REST API.
 Matches schema: users, ideas, pipeline_runs, agent_outputs, sprints, tasks.
 """
+from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone

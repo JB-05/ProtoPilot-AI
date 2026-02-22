@@ -2,8 +2,11 @@
 Multi-agent pipeline runner with validation and retry.
 Every agent output is guilty until validated. Malformed output cannot break the system.
 Persists via Supabase REST when supabase client and pipeline_run_id are provided.
+Supports async agents (e.g. Strategist via OpenRouter); sync agents unchanged.
 """
+from __future__ import annotations
 
+import asyncio
 import time
 from typing import Any
 
@@ -41,8 +44,12 @@ AGENT_STATE_KEYS = {
 
 def _merge_output_into_state(state: IdeaState, agent_name: str, output: dict[str, Any]) -> IdeaState:
     """Merge validated agent output into state for response."""
+    import json as _json
     key = AGENT_STATE_KEYS.get(agent_name)
-    content = output.get("content", "")
+    content = output.get("content")
+    if content is None and agent_name == "strategist":
+        content = _json.dumps(output)
+    content = content or ""
     if key:
         return state.model_copy(update={key: content})
     return state
@@ -74,7 +81,7 @@ class PipelineRunner:
         self._agents = (Strategist(), Architect(), Business(), Risk(), Scrum())
         self._max_retries = max_retries
 
-    def run(
+    async def run(
         self,
         state: IdeaState,
         *,
@@ -87,7 +94,7 @@ class PipelineRunner:
         current = state
         start_ms = int(time.time() * 1000)
         for agent in self._agents:
-            result = self._run_agent_with_retry(agent, current, supabase=supabase, pipeline_run_id=pipeline_run_id)
+            result = await self._run_agent_with_retry(agent, current, supabase=supabase, pipeline_run_id=pipeline_run_id)
             if not result.success:
                 if supabase and pipeline_run_id:
                     update_pipeline_run_status(supabase, pipeline_run_id, "failed")
@@ -98,7 +105,7 @@ class PipelineRunner:
             update_pipeline_run_completed(supabase, pipeline_run_id, status="completed", total_latency_ms=total_ms)
         return PipelineResult.ok(current)
 
-    def _run_agent_with_retry(
+    async def _run_agent_with_retry(
         self,
         agent,
         state: IdeaState,
@@ -106,10 +113,22 @@ class PipelineRunner:
         supabase: Any = None,
         pipeline_run_id: str | None = None,
     ) -> PipelineResult:
-        """Run one agent with retry-on-invalid-output."""
+        """Run one agent with retry-on-invalid-output. Supports async and sync process()."""
         last_error: ErrorDetail | None = None
         for attempt in range(1, self._max_retries + 1):
-            raw = agent.process(state)
+            try:
+                if asyncio.iscoroutinefunction(agent.process):
+                    raw = await agent.process(state)
+                else:
+                    raw = agent.process(state)
+            except (ValueError, RuntimeError) as e:
+                last_error = ErrorDetail(
+                    code="validation_error",
+                    message=str(e),
+                    agent_name=getattr(agent, "name", None),
+                    details={"attempt": attempt, "max_retries": self._max_retries},
+                )
+                continue
             parsed = safe_parse_json(raw)
             if parsed is None:
                 last_error = ErrorDetail(
