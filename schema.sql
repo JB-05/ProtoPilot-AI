@@ -116,5 +116,29 @@ CREATE INDEX IF NOT EXISTS idx_tasks_sprint_id
 ON tasks(sprint_id);
 
 -- =====================================================
+-- GENERATED FILES (Lovable-style code generation)
+-- =====================================================
+-- Stores per-file generated code for each pipeline run.
+-- Used by MVP/code-gen module for project structure and live preview.
+
+CREATE TABLE IF NOT EXISTS generated_files (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pipeline_run_id UUID NOT NULL REFERENCES pipeline_runs(id) ON DELETE CASCADE,
+
+    file_path TEXT NOT NULL,
+    content TEXT NOT NULL,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE(pipeline_run_id, file_path)
+);
+
+CREATE INDEX IF NOT EXISTS idx_generated_files_run_id
+ON generated_files(pipeline_run_id);
+
+CREATE INDEX IF NOT EXISTS idx_generated_files_path
+ON generated_files(file_path);
+
+-- =====================================================
 -- END OF SCHEMA
 -- =====================================================
