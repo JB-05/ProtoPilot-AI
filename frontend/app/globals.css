@@ -381,6 +381,156 @@ body {
   font-style: italic;
 }
 
+/* Pipeline result: master wrapper for all pipeline output.
+   Same width as Idea container: span full grid (dashboard__main is 2-col grid). */
+.pipeline-result {
+  grid-column: 1 / -1;
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+  min-width: 0;
+}
+
+.pipeline-result__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.pipeline-result__heading {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.pipeline-result__card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.pipeline-result__card-title {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* Execution Plan: Architecture + Sprint Board – full width, same as Idea container */
+.execution-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.execution-section__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.execution-section__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.execution-section__grid .pipeline-result__card {
+  min-height: 0;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .execution-section__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* CTO Strategy cards (parsed enhanced_idea JSON) – unified card style */
+.cto-strategy {
+  width: 100%;
+}
+.cto-strategy__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.cto-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+.cto-card__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  border-bottom: 1px solid #e0e8e0;
+  padding-bottom: 0.5rem;
+}
+.cto-card__body {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #333;
+}
+.cto-card__p {
+  margin: 0 0 0.5rem;
+}
+.cto-card__p:last-of-type {
+  margin-bottom: 0;
+}
+.cto-card__list {
+  margin: 0.25rem 0 0 1rem;
+  padding: 0;
+}
+.cto-card__muted {
+  color: #666;
+}
+.cto-feasibility {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.cto-feasibility__bar-wrap {
+  flex: 1;
+  height: 10px;
+  background: #e8ece8;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.cto-feasibility__bar {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.2s ease;
+}
+.cto-feasibility__bar--high {
+  background: #22c55e;
+}
+.cto-feasibility__bar--mid {
+  background: #eab308;
+}
+.cto-feasibility__bar--low {
+  background: #ef4444;
+}
+.cto-feasibility__label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+  min-width: 4rem;
+}
+
 /* Structured success (known fields only) */
 .pipeline-result__list {
   margin: 0;

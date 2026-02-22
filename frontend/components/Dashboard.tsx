@@ -17,10 +17,9 @@ import {
   runPipeline,
   saveProjectState,
 } from "@/lib/apiClient";
-import ArchitectureView from "./ArchitectureView";
+import CTOStrategyView from "./CTOStrategyView";
+import ExecutionSection from "./ExecutionSection";
 import MVPGeneration, { type FileNode } from "./MVPGeneration";
-import RiskPanel from "./RiskPanel";
-import SprintBoard from "./SprintBoard";
 
 const PROJECT_ID_KEY = "protopilot_project_id";
 
@@ -485,84 +484,45 @@ export default function Dashboard() {
               </div>
             </section>
 
-            <section className="panel panel--full enhanced-idea">
-              <h2 className="panel__title">Enhanced idea</h2>
-              <p className="enhanced-idea__hint">
-                When you run the pipeline, your vague idea is refined into a clearer problem statement.
-              </p>
-              <div className="enhanced-idea__content">
-                {workspaceState.enhanced_idea ? (
-                  <pre className="enhanced-idea__text">
-                    {workspaceState.enhanced_idea}
-                  </pre>
-                ) : (
-                  <p className="enhanced-idea__empty">
-                    Run the pipeline to generate an enhanced idea from your input above.
-                  </p>
-                )}
-              </div>
-            </section>
+            <div className="pipeline-result">
+              <section className="pipeline-result__section" aria-labelledby="strategy-heading">
+                <h2 id="strategy-heading" className="pipeline-result__heading">
+                  Strategy & Feasibility
+                </h2>
+                <p className="enhanced-idea__hint">
+                  Refined problem, market, business model, risks, architecture and feasibility score.
+                </p>
+                <div className="pipeline-result__card">
+                  <CTOStrategyView
+                    enhancedIdea={workspaceState.enhanced_idea ?? null}
+                    emptyMessage="Run the pipeline to generate strategy and feasibility analysis."
+                  />
+                </div>
+              </section>
+
+              <ExecutionSection
+                architectureContent={workspaceState?.architecture_model ?? null}
+                sprints={sprints}
+              />
+
+              <section className="pipeline-result__section mvp-section" aria-labelledby="mvp-heading">
+                <h2 id="mvp-heading" className="pipeline-result__heading">
+                  MVP Generation
+                </h2>
+                <p className="panel__hint">
+                  Build output and folder/file structure (Lovable-style)
+                </p>
+                <div className="pipeline-result__card">
+                  <MVPGeneration
+                    structure={(workspaceState?.mvp_structure ?? null) as FileNode[] | null}
+                    structureText={workspaceState?.mvp_structure_text ?? null}
+                  />
+                </div>
+              </section>
+            </div>
           </>
         )}
 
-        <section className="panel" aria-labelledby="architecture-heading">
-          <h2 id="architecture-heading" className="panel__title">
-            Architecture
-          </h2>
-          <ArchitectureView content={workspaceState?.architecture_model ?? null} />
-        </section>
-        <section className="panel" aria-labelledby="sprint-heading">
-          <h2 id="sprint-heading" className="panel__title">
-            Sprint Board
-          </h2>
-          <SprintBoard sprints={sprints} />
-        </section>
-        <section className="panel-triple" aria-labelledby="risk-business-finance-heading">
-          <h2 id="risk-business-finance-heading" className="panel-triple__title">
-            Risk · Business · Finance
-          </h2>
-          <div className="panel-triple__grid">
-            <div className="panel panel-triple__item" aria-labelledby="risk-heading">
-              <h3 id="risk-heading" className="panel__title">
-                Risk
-              </h3>
-              <RiskPanel
-                content={workspaceState?.risk_model ?? null}
-                emptyMessage="Run the pipeline to generate risk items and mitigations."
-              />
-            </div>
-            <div className="panel panel-triple__item" aria-labelledby="business-heading">
-              <h3 id="business-heading" className="panel__title">
-                Business
-              </h3>
-              <RiskPanel
-                content={workspaceState?.business_model ?? null}
-                emptyMessage="Run the pipeline to generate business model."
-              />
-            </div>
-            <div className="panel panel-triple__item" aria-labelledby="finance-heading">
-              <h3 id="finance-heading" className="panel__title">
-                Finance
-              </h3>
-              <RiskPanel
-                content={workspaceState?.finance_model ?? null}
-                emptyMessage="Run the pipeline to generate financial analysis."
-              />
-            </div>
-          </div>
-        </section>
-        <section className="panel panel--full mvp-section" aria-labelledby="mvp-heading">
-          <h2 id="mvp-heading" className="panel__title">
-            MVP Generation
-          </h2>
-          <p className="panel__hint">
-            Build output and folder/file structure (Lovable-style)
-          </p>
-          <MVPGeneration
-            structure={(workspaceState?.mvp_structure ?? null) as FileNode[] | null}
-            structureText={workspaceState?.mvp_structure_text ?? null}
-          />
-        </section>
         </main>
       </div>
       </div>

@@ -2,6 +2,7 @@
 Database connectivity and persistence spine.
 PostgreSQL via SQLAlchemy (lightweight). No ORM models; engine + session + helper placeholders.
 """
+from __future__ import annotations
 
 from typing import Generator
 

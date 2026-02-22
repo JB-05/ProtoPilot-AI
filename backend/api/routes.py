@@ -1,6 +1,9 @@
 """
 API route definitions. Uses Supabase REST (idea_store) for persistence.
 """
+from __future__ import annotations
+
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
@@ -46,14 +49,14 @@ async def health(settings: Settings = Depends(get_settings)):
 
 class CreateIdeaBody(BaseModel):
     problem_statement: str = ""
-    target_audience: str | None = None
-    key_features: str | None = None
-    budget: str | None = None
-    timeline: str | None = None
+    target_audience: Optional[str] = None
+    key_features: Optional[str] = None
+    budget: Optional[str] = None
+    timeline: Optional[str] = None
 
 
 @router.post("/ideas", tags=["ideas"])
-async def create_idea_route(body: CreateIdeaBody | None = None, supabase=Depends(_get_supabase)):
+async def create_idea_route(body: Optional[CreateIdeaBody] = None, supabase=Depends(_get_supabase)):
     """Create a new idea. Returns id (UUID) and created_at."""
     b = body or CreateIdeaBody()
     idea = create_idea(
@@ -272,12 +275,12 @@ async def save_project_state_route(project_id: str, body: dict, supabase=Depends
 
 class PipelineRunBody(BaseModel):
     idea_id: str
-    idea: str | None = None
-    problem_statement: str | None = None
-    target_audience: str | None = None
-    key_features: str | None = None
-    budget: str | None = None
-    timeline: str | None = None
+    idea: Optional[str] = None
+    problem_statement: Optional[str] = None
+    target_audience: Optional[str] = None
+    key_features: Optional[str] = None
+    budget: Optional[str] = None
+    timeline: Optional[str] = None
 
     class Config:
         extra = "allow"
@@ -302,7 +305,7 @@ async def run_pipeline(body: PipelineRunBody, supabase=Depends(_get_supabase)):
         timeline=body.timeline or idea.timeline,
     )
     runner = PipelineRunner()
-    result = runner.run(state, supabase=supabase, pipeline_run_id=run_id)
+    result = await runner.run(state, supabase=supabase, pipeline_run_id=run_id)
     if result.success and result.state is not None:
         data = await get_idea_route(body.idea_id, supabase)
         state_dict = result.state.model_dump()

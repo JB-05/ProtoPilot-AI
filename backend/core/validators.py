@@ -2,6 +2,7 @@
 Validation & reliability: JSON parsing guardrails and schema enforcement.
 Every agent output is guilty until validated.
 """
+from __future__ import annotations
 
 import json
 from typing import TypeVar
