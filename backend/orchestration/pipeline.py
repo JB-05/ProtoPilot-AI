@@ -31,7 +31,7 @@ from orchestration.state import IdeaState
 DEFAULT_MAX_RETRIES = 3
 
 AGENT_STATE_KEYS = {
-    "strategist": "product_model",
+    "strategist": "enhanced_idea",  # Refined idea from vague input
     "architect": "architecture_model",
     "business": "business_model",
     "risk": "risk_model",

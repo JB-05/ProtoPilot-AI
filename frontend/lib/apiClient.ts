@@ -47,6 +47,7 @@ export interface PipelineState {
   key_features?: string | null;
   budget?: string | null;
   timeline?: string | null;
+  enhanced_idea?: string | null;
   product_model?: string | null;
   architecture_model?: string | null;
   business_model?: string | null;
@@ -232,6 +233,7 @@ export const EMPTY_PROJECT_STATE: PipelineState = {
   key_features: null,
   budget: null,
   timeline: null,
+  enhanced_idea: null,
   product_model: null,
   architecture_model: null,
   business_model: null,

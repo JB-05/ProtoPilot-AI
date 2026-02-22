@@ -104,6 +104,7 @@ def _idea_to_state_payload(idea, pipeline_run, agent_outputs, sprints_with_tasks
         "budget": idea.budget,
         "timeline": idea.timeline,
         "idea": idea.problem_statement or None,
+        "enhanced_idea": None,
         "product_model": None,
         "architecture_model": None,
         "business_model": None,
@@ -117,6 +118,7 @@ def _idea_to_state_payload(idea, pipeline_run, agent_outputs, sprints_with_tasks
     for ao in agent_outputs:
         content = ao.output_json.get("content", "") if isinstance(ao.output_json, dict) else ""
         if ao.agent_name == "strategist":
+            out["enhanced_idea"] = content
             out["product_model"] = content
         elif ao.agent_name == "architect":
             out["architecture_model"] = content

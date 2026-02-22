@@ -16,6 +16,7 @@ class IdeaState(BaseModel):
     key_features: str | None = None
     budget: str | None = None
     timeline: str | None = None
+    enhanced_idea: str | None = None  # Strategist output: refined idea from vague input
 
     class Config:
         extra = "allow"

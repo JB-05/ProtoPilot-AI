@@ -321,6 +321,37 @@ body {
   color: #666;
 }
 
+/* Enhanced idea (Strategist output) */
+.enhanced-idea__hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.enhanced-idea__content {
+  background: #f8faf8;
+  border: 1px solid #e0e8e0;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+}
+
+.enhanced-idea__text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #1a1a1a;
+}
+
+.enhanced-idea__empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #888;
+  font-style: italic;
+}
+
 /* Structured success (known fields only) */
 .pipeline-result__list {
   margin: 0;

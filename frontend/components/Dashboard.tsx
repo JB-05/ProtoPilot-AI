@@ -36,6 +36,16 @@ function mergeState(base: PipelineState, patch: Partial<PipelineState>): Pipelin
   return { ...base, ...patch };
 }
 
+function formatDate(s: string | null | undefined): string {
+  if (!s) return "—";
+  try {
+    const d = new Date(s);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return String(s).slice(0, 16);
+  }
+}
+
 export default function Dashboard() {
   const [healthStatus, setHealthStatus] = useState<"ok" | "error" | null>(null);
   const [workspacePhase, setWorkspacePhase] = useState<WorkspacePhase>("no_project");
@@ -106,9 +116,8 @@ export default function Dashboard() {
     async (pid: string) => {
       persistProjectId(pid);
       await loadProjectState(pid);
-      await loadRunHistory(pid);
     },
-    [persistProjectId, loadProjectState, loadRunHistory]
+    [persistProjectId, loadProjectState]
   );
 
   const handleViewRun = useCallback(
@@ -127,8 +136,7 @@ export default function Dashboard() {
     if (!projectId) return;
     setViewingRunId(null);
     await loadProjectState(projectId);
-    await loadRunHistory(projectId);
-  }, [projectId, loadProjectState, loadRunHistory]);
+  }, [projectId, loadProjectState]);
 
   const handleNewProject = useCallback(async () => {
     setWorkspacePhase("loading");
@@ -225,14 +233,13 @@ export default function Dashboard() {
       if (stored) {
         persistProjectId(stored);
         loadProjectState(stored);
-        loadRunHistory(stored);
       } else {
         setWorkspacePhase("no_project");
       }
     } catch {
       setWorkspacePhase("no_project");
     }
-  }, [loadProjectState, loadRunHistory, persistProjectId]);
+  }, [loadProjectState, persistProjectId]);
 
   useEffect(() => {
     loadProjectHistory();
@@ -255,16 +262,6 @@ export default function Dashboard() {
   const isDisabled = isWorkspaceLoading || isWorkspaceSaving || isPipelineLoading || isViewingHistory;
 
   const sprints: Sprint[] = workspaceState?.sprints ?? [];
-
-  function formatDate(s: string | null | undefined): string {
-    if (!s) return "—";
-    try {
-      const d = new Date(s);
-      return d.toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-    } catch {
-      return String(s).slice(0, 16);
-    }
-  }
 
   return (
     <div className="dashboard">
@@ -487,30 +484,22 @@ export default function Dashboard() {
               </div>
             </section>
 
-            <section className="panel panel--full pipeline-result">
-              <h2 className="panel__title">Project state</h2>
-              <dl className="pipeline-result__list">
-                <div className="pipeline-result__row">
-                  <dt>Product model</dt>
-                  <dd>{safeString(workspaceState.product_model)}</dd>
-                </div>
-                <div className="pipeline-result__row">
-                  <dt>Architecture model</dt>
-                  <dd>{safeString(workspaceState.architecture_model)}</dd>
-                </div>
-                <div className="pipeline-result__row">
-                  <dt>Business model</dt>
-                  <dd>{safeString(workspaceState.business_model)}</dd>
-                </div>
-                <div className="pipeline-result__row">
-                  <dt>Risk model</dt>
-                  <dd>{safeString(workspaceState.risk_model)}</dd>
-                </div>
-                <div className="pipeline-result__row">
-                  <dt>Sprint model</dt>
-                  <dd>{safeString(workspaceState.sprint_model)}</dd>
-                </div>
-              </dl>
+            <section className="panel panel--full enhanced-idea">
+              <h2 className="panel__title">Enhanced idea</h2>
+              <p className="enhanced-idea__hint">
+                When you run the pipeline, your vague idea is refined into a clearer problem statement.
+              </p>
+              <div className="enhanced-idea__content">
+                {workspaceState.enhanced_idea ? (
+                  <pre className="enhanced-idea__text">
+                    {workspaceState.enhanced_idea}
+                  </pre>
+                ) : (
+                  <p className="enhanced-idea__empty">
+                    Run the pipeline to generate an enhanced idea from your input above.
+                  </p>
+                )}
+              </div>
             </section>
           </>
         )}
