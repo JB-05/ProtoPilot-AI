@@ -2,6 +2,7 @@
 Pipeline result type: success with state or failure with structured error.
 Malformed LLM outputs never break the system—failures are captured here.
 """
+from __future__ import annotations
 
 from dataclasses import dataclass
 

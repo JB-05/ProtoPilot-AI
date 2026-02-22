@@ -1,6 +1,9 @@
 """
 API route definitions. Uses Supabase REST (idea_store) for persistence.
 """
+from __future__ import annotations
+
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
@@ -24,6 +27,8 @@ from core.schemas import ErrorDetail, HealthResponse, StructuredErrorResponse
 from core.supabase_client import get_supabase, get_supabase_or_raise
 from orchestration.pipeline import PipelineRunner
 from orchestration.state import IdeaState
+from services.mvp_generator import generate_mvp_files, start_generated_mvp_servers, write_mvp_files
+from services.mvp_improver import improve_mvp_files
 
 router = APIRouter()
 
@@ -46,14 +51,14 @@ async def health(settings: Settings = Depends(get_settings)):
 
 class CreateIdeaBody(BaseModel):
     problem_statement: str = ""
-    target_audience: str | None = None
-    key_features: str | None = None
-    budget: str | None = None
-    timeline: str | None = None
+    target_audience: Optional[str] = None
+    key_features: Optional[str] = None
+    budget: Optional[str] = None
+    timeline: Optional[str] = None
 
 
 @router.post("/ideas", tags=["ideas"])
-async def create_idea_route(body: CreateIdeaBody | None = None, supabase=Depends(_get_supabase)):
+async def create_idea_route(body: Optional[CreateIdeaBody] = None, supabase=Depends(_get_supabase)):
     """Create a new idea. Returns id (UUID) and created_at."""
     b = body or CreateIdeaBody()
     idea = create_idea(
@@ -272,12 +277,12 @@ async def save_project_state_route(project_id: str, body: dict, supabase=Depends
 
 class PipelineRunBody(BaseModel):
     idea_id: str
-    idea: str | None = None
-    problem_statement: str | None = None
-    target_audience: str | None = None
-    key_features: str | None = None
-    budget: str | None = None
-    timeline: str | None = None
+    idea: Optional[str] = None
+    problem_statement: Optional[str] = None
+    target_audience: Optional[str] = None
+    key_features: Optional[str] = None
+    budget: Optional[str] = None
+    timeline: Optional[str] = None
 
     class Config:
         extra = "allow"
@@ -302,7 +307,7 @@ async def run_pipeline(body: PipelineRunBody, supabase=Depends(_get_supabase)):
         timeline=body.timeline or idea.timeline,
     )
     runner = PipelineRunner()
-    result = runner.run(state, supabase=supabase, pipeline_run_id=run_id)
+    result = await runner.run(state, supabase=supabase, pipeline_run_id=run_id)
     if result.success and result.state is not None:
         data = await get_idea_route(body.idea_id, supabase)
         state_dict = result.state.model_dump()
@@ -337,3 +342,55 @@ async def get_sprints_route(idea_id: str, supabase=Depends(_get_supabase)):
             }
         )
     return {"sprints": out}
+
+
+# --- MVP generation (LLM → files JSON → write to disk) ---
+
+MVP_OUTPUT_DIR = "generated-mvp"
+
+
+class MVPGenerateBody(BaseModel):
+    enhanced_problem: str = ""
+    target_user: str = ""
+    core_features: str = ""
+
+
+class MVPImproveBody(BaseModel):
+    files: list[dict[str, str]]  # [{"path": "...", "content": "..."}, ...]
+    instruction: str = ""
+
+
+@router.post("/mvp/generate", tags=["mvp"])
+async def mvp_generate_route(body: MVPGenerateBody):
+    """Generate full-stack MVP from CTO summary; validate; write to generated-mvp/; return files."""
+    try:
+        files = await generate_mvp_files(
+            enhanced_problem=body.enhanced_problem,
+            target_user=body.target_user,
+            core_features=body.core_features,
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    from pathlib import Path
+    project_root = Path(__file__).resolve().parent.parent.parent
+    output_dir = str(project_root / MVP_OUTPUT_DIR)
+    write_mvp_files(files, output_dir)
+    start_generated_mvp_servers(output_dir)
+    return {"ok": True, "files": files, "output_dir": output_dir}
+
+
+@router.post("/mvp/improve", tags=["mvp"])
+async def mvp_improve_route(body: MVPImproveBody):
+    """Improve existing MVP: send current files + instruction; get back modified_files only."""
+    try:
+        modified = await improve_mvp_files(
+            files=body.files,
+            instruction=body.instruction,
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"ok": True, "modified_files": modified}
